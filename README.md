@@ -6,7 +6,7 @@ lemon.markets is in closed beta and this SDK is a work in progress. Pull request
 
 ## Which APL?
 
-This SDK is implemented using Dyalog APL 18.2 and it will probably not work with lower versions. (If you absolutely need it for an earlier version,
+This SDK is implemented using [Dyalog APL](https://dyalog.com) [18.2](https://www.dyalog.com/dyalog/dyalog-versions/182.htm) and it will probably not work with lower versions. (If you absolutely need it for an earlier version,
 let me [know](./issues)!)
 If you want to use other dialects, feel free to use this code as your v1, but I intend to only support the Dyalog implementation.
 

@@ -1,0 +1,108 @@
+﻿:class LemonMarkets_API
+⍝ implements the LemonMarkets APIs 
+⍝ Markets: https://data.lemon.markets/v1/docs#/
+⍝ Trading: https://paper-trading.lemon.markets/v1/docs#/   
+⍝ from https://lemon.markets/
+⍝ ------------------------------------------------------
+⍝ History:
+⍝ 2022, May 28th: first release - basic stuff working, need to add more tests and expand functionality
+
+
+    :field public APIKey←''
+    :field public BaseURL←''
+    :field public shared DataURL←'https://data.lemon.markets/v1/'
+    :field public cfg←''
+    :field public Market
+    :field public Trading
+
+    ∇ make1
+      :Access public
+      :Implements constructor
+      home←Home
+      cfg←(⎕JSON⍠'Dialect' 'JSON5')1⊃⎕NGET home,'LemonMarkets_API.json5'
+      :If 0=⎕NC'cfg.APIKey'
+      :OrIf 0=≢cfg.APIKey
+          cfg.APIKey←2 ⎕NQ'.' 'GetEnvironment' 'LemonMarkets_APIKEY'
+      :EndIf
+      0 # ⎕SE.SALT.Load'HttpCommand'
+      Market←⎕NEW lMarket cfg
+      Trading←⎕NEW lTrading cfg
+    ∇
+
+
+    ∇ R←Home
+      :If 0=≢R←{6::'' ⋄ ⍎⍵}'#.LemonMarkets_API.SALT_Data.SourceFile'
+      :AndIf 0=≢R←{11:'' ⋄ ⍎⍵}'50 ⎕ATX⍎⊃⎕CLASS ⎕THIS'
+          'Home directory not found'⎕SIGNAL 6
+      :EndIf
+      R←1⊃⎕NPARTS R
+    ∇
+
+
+    ∇ test;lma;r1;r2
+      :Access public shared
+      lma←⎕NEW ⎕THIS
+⍝ request = requests.get("https://data.lemon.markets/v1/instruments/?search=search", headers={"Authorization": "Bearer YOUR-API-KEY"})
+      r1←lma.Market.instruments'search=isin=US0378331005'   ⍝ get data for apple
+      r2←lma.Trading.venues''
+      ∘∘∘
+      ⍝ to be continued;)
+    ∇
+
+    :class LemonMarket
+        :field public URL
+        :field public APIKey
+
+        ∇ R←get what_params
+          :Access public
+          (what params)←2↑(⊆what_params),⊂''
+          url←'https://',URL,what,'/',{0=≢⍵:'' ⋄ '?',⍵}params
+          R←'GET'SendRequest url
+        ∇
+        ∇ R←{cmd}SendRequest url;h
+          h←⎕NEW #.HttpCommand
+          h.URL←url
+          h.Headers←1 2⍴'Authorization'('Bearer ',APIKey)
+          :If 0=⎕NC'cmd'
+              cmd←'GET'
+          :EndIf
+          h.Command←cmd
+          R←h.Run
+        ∇
+    :endclass
+
+    :class lMarket :LemonMarket
+        ∇ make1 cfg
+          :Access public
+          :Implements constructor
+          APIKey←cfg.APIKey
+          URL←cfg.((MarketURL{⍺,⍵~¯1↑⍺}'/'),APIVersion,'/')
+        ∇
+        ∇ R←venues arg
+          :Access public
+          R←get(1⊃⎕SI)arg
+        ∇
+        ∇ R←instruments arg
+          :Access public
+          R←get(1⊃⎕SI)arg
+        ∇
+        ∇ R←trades arg
+          :Access public
+          R←get(1⊃⎕SI)arg
+        ∇
+        ∇ R←quotes arg
+          :Access public
+          R←get(1⊃⎕SI)arg
+        ∇
+    :endclass
+
+    :class lTrading :LemonMarket
+        ∇ make1 cfg
+          :Access public
+          :Implements constructor
+          APIKey←cfg.APIKey
+          URL←cfg.((((paper≡⊂'true')/'paper-'),TradeURL{⍺,⍵~¯1↑⍺}'/'),APIVersion,'/')
+        ∇
+    :endclass
+
+:endclass

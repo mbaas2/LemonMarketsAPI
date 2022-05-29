@@ -2,6 +2,7 @@
     paper: true,  // paper trading or real stuff?
     APIKey: "",   // your API Key (alternatively via GetEnv "LemonMarkets_APIKEY")
     APIVersion:"v1",
+    PIN: "",
 
     // admittedly these are not URLs, rather "segments of URLs":
     MarketURL:"data.lemon.markets/",

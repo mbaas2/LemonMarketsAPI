@@ -1,11 +1,13 @@
 ﻿:class LemonMarkets_API
-⍝ implements the LemonMarkets APIs 
+⍝ implements the LemonMarkets APIs
 ⍝ Markets: https://data.lemon.markets/v1/docs#/
-⍝ Trading: https://paper-trading.lemon.markets/v1/docs#/   
+⍝ Trading: https://paper-trading.lemon.markets/v1/docs#/
 ⍝ from https://lemon.markets/
 ⍝ ------------------------------------------------------
 ⍝ History:
+⍝ 2022, May 29th: added Trading endpoint withdrawal & PIN-Handling
 ⍝ 2022, May 28th: first release - basic stuff working, need to add more tests and expand functionality
+⍝
 
 
     :field public APIKey←''
@@ -44,7 +46,8 @@
       lma←⎕NEW ⎕THIS
 ⍝ request = requests.get("https://data.lemon.markets/v1/instruments/?search=search", headers={"Authorization": "Bearer YOUR-API-KEY"})
       r1←lma.Market.instruments'search=isin=US0378331005'   ⍝ get data for apple
-      r2←lma.Trading.venues''
+      r2←lma.Market.venues''
+      r4←lma.Trading.withdrawal 4711
       ∘∘∘
       ⍝ to be continued;)
     ∇
@@ -59,9 +62,23 @@
           url←'https://',URL,what,'/',{0=≢⍵:'' ⋄ '?',⍵}params
           R←'GET'SendRequest url
         ∇
-        ∇ R←{cmd}SendRequest url;h
+
+        ∇ R←post what_params_body
+          :Access public
+          (what params body)←3↑(⊆what_params_body),2⍴⊂''
+          url←'https://',URL,what,'/',{0=≢⍵:'' ⋄ '?',⍵}params
+          R←'POST'SendRequest url body
+        ∇
+
+        ∇ R←{cmd}SendRequest url_parms;h
           h←⎕NEW #.HttpCommand
-          h.URL←url
+          h.URL←1⊃,⊆url_parms
+          b←2⊃2↑(⊆url_parms),⊂''
+          :If 0<≢b
+              h.Params←b.({⍵(⍎⍵)}¨⎕NL ¯2)
+              h.Headers⍪←'Content-Type' 'application/json'
+              h.Headers⍪←'accept' 'application/json'
+          :EndIf
           h.Headers←1 2⍴'Authorization'('Bearer ',APIKey)
           :If 0=⎕NC'cmd'
               cmd←'GET'
@@ -103,6 +120,30 @@
           APIKey←cfg.APIKey
           URL←cfg.((((paper≡⊂'true')/'paper-'),TradeURL{⍺,⍵~¯1↑⍺}'/'),APIVersion,'/')
         ∇
-    :endclass
 
+        ∇ R←account arg
+          :Access public
+          R←get(1⊃⎕SI)arg
+        ∇
+
+        ∇ R←withdrawal a_p_i
+          :Access public
+        ⍝ amount [pin [idempotency]]
+        ⍝ PIN can be passed as 2nd argument or alternatively via Env (or cfg) "LemonMarkets_PIN"
+          parms←⎕NS''
+          parms.amount←(10000×1⊃,a_p_i)
+          :If 1<≢a_p_i
+              parms.pin←2⊃a_p_i
+              :If 2<≢a_p_i
+                  parms.idempotency←(3⊃a_p_i)
+              :EndIf
+          :ElseIf 0<≢r←2 ⎕NQ'.' 'GetEnvironment' 'LemonMarkets_PIN'
+              parms.pin←r
+          :EndIf
+          :If ' '=⍥⎕DR parms.pin   ⍝ make sure PIN is a number
+              parms.pin←⍎'0',parms.pin∩⎕D
+          :EndIf
+          R←post'account/withdrawals' ''parms
+        ∇
+    :endclass
 :endclass
